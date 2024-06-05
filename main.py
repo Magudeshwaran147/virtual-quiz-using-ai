@@ -22,11 +22,10 @@ db_config = {
     "port": "3306",
     "user": "virtualquiz",
     "password": "Virtual@uiz7",
-    "database": "quiz_list"
+    "database": "quiz"
 }
 # Initialize the database connection
 def initialize_database_connection(db_config):
-
     try:
         connection = mysql.connector.connect(**db_config)
         return connection
@@ -40,7 +39,7 @@ def fetch_quiz_questions(connection):
 
     try:
         with connection.cursor(dictionary=True) as cursor:
-            cursor.execute("SELECT * FROM quiz_list")
+            cursor.execute("SELECT * FROM quiz")
             questions = cursor.fetchall()
             for question in questions:
                 if 'type' not in question or question['type'] not in ['objective', 'technical', 'mathematical']:
@@ -85,7 +84,7 @@ def send_score_email(username, email, score):
     msg['Subject'] = subject
 
     # Email content
-    body = f"Hello {username},\n\nYour quiz score is: {score}\n\nThank you for taking the quiz!"
+    body = f"Hello {username},\n\nCongratulations on completing the quiz! Below are the details of your performance:\n\nQUIZ SCORE: {score}\n\nThank you for participating in the quiz. We hope you had a great experience!"
     msg.attach(MIMEText(body, 'plain'))
 
     # Send the email
@@ -104,8 +103,8 @@ def send_score_email(username, email, score):
 def run_my_python_script(username, email):
 
     cap = cv.VideoCapture(0)
-    cap.set(3, 1920)
-    cap.set(4, 1080)
+    cap.set(3, 1366)
+    cap.set(4, 768)
     detector = HandDetector(detectionCon=0.8, maxHands=1)
 
     class MCQ():
@@ -156,13 +155,14 @@ def run_my_python_script(username, email):
 
     qNo = 0
     email_sent = False
+    csv_written = False
     font2 = cv.FONT_HERSHEY_COMPLEX_SMALL
     max_chars_per_line = 40  # Define the maximum number of characters per line
     question_index = 0
     current_question_type = None
     current_question_list = None  # Track the current question list being displayed
     current_question = None
-    timer_limit = 10 * 60  # 15 minutes in seconds
+    timer_limit = 2 * 60  # 15 minutes in seconds
     timer = timer_limit
     font_timer = cv.FONT_HERSHEY_SIMPLEX
     timer_position = (50, 400)
@@ -185,26 +185,25 @@ def run_my_python_script(username, email):
         if not all_question_types_completed:
             if current_question_list is None:
 
-                img, _ = cvzone.putTextRect(img, "Choose a question type:", [100, 100], 1, 1, offset=20, border=2, colorT=(0, 0, 0),
+                img, _ = cvzone.putTextRect(img, "Choose a question type:", [200, 120], 1, 1, offset=20, border=2, colorT=(0, 0, 0),
                                             colorR=(255, 255, 100), colorB=(0, 0, 0), font=font2)
-                img, aaox1 = cvzone.putTextRect(img, "1. Objective", [100, 180], 1, 1, offset=20, border=2,
+                img, aaox1 = cvzone.putTextRect(img, "1. Objective", [200, 200], 1, 1, offset=20, border=2,
                                                 colorT=(0, 0, 0),
                                                 colorR=(255, 0, 0) if completed_types[0] else (255, 255, 100),
                                                 colorB=(0, 0, 0), font=font2)  # Blue if completed, yellow if not
-                img, aaox2 = cvzone.putTextRect(img, "2. Technical", [100, 260], 1, 1, offset=20, border=2,
+                img, aaox2 = cvzone.putTextRect(img, "2. Technical", [200, 270], 1, 1, offset=20, border=2,
                                                 colorT=(0, 0, 0),
                                                 colorR=(255, 0, 0) if completed_types[1] else (255, 255, 100),
                                                 colorB=(0, 0, 0), font=font2)  # Blue if completed, yellow if not
-                img, aaox3 = cvzone.putTextRect(img, "3. Mathematical", [100, 340], 1, 1, offset=20, border=2,
+                img, aaox3 = cvzone.putTextRect(img, "3. Mathematical", [200, 340], 1, 1, offset=20, border=2,
                                                 colorT=(0, 0, 0),
                                                 colorR=(255, 0, 0) if completed_types[2] else (255, 255, 100),
                                                 colorB=(0, 0, 0), font=font2)  # Blue if completed, yellow if not
                 if hands:
                     lmList = hands[0]['lmList']
-                    if len(lmList) >= 13:  # Ensure there are at least 13 landmarks
-                        cursor = lmList[8]
-                        length, info = detector.findDistance(lmList[8], lmList[12])
-                    if length < 30:
+                    cursor = lmList[8]
+                    length, info = detector.findDistance(lmList[8], lmList[12])
+                    if length < 25:
                         if not completed_types[0] and aaox1[0] < cursor[0] < aaox1[2] and aaox1[1] < cursor[1] < aaox1[3]:
                             current_question_list = question_lists[0]  # Objective questions
                             current_question_type = 0
@@ -276,17 +275,17 @@ def run_my_python_script(username, email):
                             y_offset = 45
 
                             for wrapped_line in wrapped_question:
-                                img, _ = cvzone.putTextRect(img, wrapped_line, [45, y_offset], 1, 1, offset=20, border=3,
+                                img, _ = cvzone.putTextRect(img, wrapped_line, [45, y_offset], 1, 1, offset=10, border=3,
                                                                 colorT=(255, 255, 255), colorB=(255, 255, 255), colorR=(0, 0, 0), font=font2)
-                                y_offset += 60
+                                y_offset += 40
 
-                            img, bbox1 = cvzone.putTextRect(img, mcq.choices[0], [75, 200], 1, 1, offset=20, border=2, colorT=(0, 0, 0),
+                            img, bbox1 = cvzone.putTextRect(img, mcq.choices[0], [45, 170], 1, 1, offset=20, border=2, colorT=(0, 0, 0),
                                                                 colorB=(0, 0, 0), colorR=(255, 255, 100), font=font2)
-                            img, bbox2 = cvzone.putTextRect(img, mcq.choices[1], [450, 200], 1, 1, offset=20, border=2, colorT=(0, 0, 0),
+                            img, bbox2 = cvzone.putTextRect(img, mcq.choices[1], [350, 170], 1, 1, offset=20, border=2, colorT=(0, 0, 0),
                                                                 colorB=(0, 0, 0), colorR=(255, 255, 100), font=font2)
-                            img, bbox3 = cvzone.putTextRect(img, mcq.choices[2], [75, 300], 1, 1, offset=20, border=2, colorT=(0, 0, 0),
+                            img, bbox3 = cvzone.putTextRect(img, mcq.choices[2], [45, 270], 1, 1, offset=20, border=2, colorT=(0, 0, 0),
                                                                 colorB=(0, 0, 0), colorR=(255, 255, 100), font=font2)
-                            img, bbox4 = cvzone.putTextRect(img, mcq.choices[3], [450, 300], 1, 1, offset=20, border=2, colorT=(0, 0, 0),
+                            img, bbox4 = cvzone.putTextRect(img, mcq.choices[3], [350, 270], 1, 1, offset=20, border=2, colorT=(0, 0, 0),
                                                                 colorB=(0, 0, 0), colorR=(255, 255, 100), font=font2)
 
                             if hands:
